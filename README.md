@@ -1,4 +1,4 @@
-# scam-check — "Is this real or fake?" bot for the people you look out for
+# ScamThis — "Is this real or fake?" bot for the people you look out for
 
 Someone you look out for sends a screenshot, pasted text, link, or a description of a call to a private
 Telegram bot. The bot runs URL threat intel, asks Claude (vision + optional web search) for a
@@ -161,7 +161,7 @@ Auto-replies never repeat the scam's link, phone number, or email, so they can't
 ## Setup (about 15 minutes)
 
 1. **Create the bot**: In Telegram, message **@BotFather**, send `/newbot`, and give it a name like
-   "Alex's Scam Checker". Copy the token. Optional: `/setuserpic`, and `/setjoingroups` → Disable.
+   "ScamThis". Copy the token. Optional: `/setuserpic`, and `/setjoingroups` → Disable.
 2. **Anthropic key**: Create it at console.anthropic.com → API Keys. **Set a monthly spend limit** on the workspace.
 3. **Optional free intel keys**:
    - Google Safe Browsing: Google Cloud console → enable *Safe Browsing API* → create an API key
