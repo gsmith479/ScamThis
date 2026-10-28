@@ -1,0 +1,30 @@
+services:
+  scam-check:
+    build:
+      context: .
+      args:
+        UID: "1000"
+        GID: "1000"
+    image: scam-check:local
+    container_name: scam-check
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - ./data:/data
+    # Telegram is outbound-only (long polling). The iMessage bridge listens on 8787 inside the
+    # container, published on host LOOPBACK only; Tailscale Serve exposes it to the tailnet as
+    # https://<host>.<tailnet>.ts.net:8787 (see README). Nothing is reachable from LAN or WAN.
+    ports:
+      - "127.0.0.1:18787:8787"
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 256m
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "3"

@@ -1,0 +1,14 @@
+# secrets — .env.sops is backed up by the ~/docker repo, not this one
+.env
+.env.*
+!.env.example
+
+# runtime state: cases, audit log, contacts' messages
+data/
+
+# local edit backups
+*.bak-*
+
+__pycache__/
+*.pyc
+.pytest_cache/
