@@ -33,7 +33,8 @@ MAX_IMAGES = 5
 MAX_IMAGE_EDGE = 1568
 VERDICT_LABEL = {
     "scam": "🚩 SCAM", "likely_scam": "⚠️ LIKELY SCAM", "unsure": "🤔 UNSURE",
-    "likely_legit": "🙂 LIKELY LEGIT", "legit": "✅ LEGIT", "not_a_check": "💬 CHAT",
+    "likely_legit": "🙂 LIKELY LEGIT", "legit": "✅ LEGIT", "tech_help": "🛠 TECH HELP",
+    "not_a_check": "💬 CHAT",
 }
 
 
@@ -305,6 +306,10 @@ class ScamBot:
                 return
             if decision == "auto":
                 await ctx.bot.send_message(chat_id, v.reply_text, disable_web_page_preview=True)
+            elif v.verdict == "tech_help":
+                await ctx.bot.send_message(
+                    chat_id, f"{name}, {self.cfg.owner_name} will look at this and get back to you.",
+                    disable_web_page_preview=True)
             else:
                 await ctx.bot.send_message(
                     chat_id,
@@ -379,7 +384,8 @@ class ScamBot:
             status = "NEEDS REVIEW"
             if bridge_links:
                 rows.append([InlineKeyboardButton("📲 Send draft via Messages", url=self.bridge.open_url(case_id, "draft"))])
-                rows.append([InlineKeyboardButton("📲 Send 'it's a scam'", url=self.bridge.open_url(case_id, "scam"))])
+                if v.verdict != "tech_help":
+                    rows.append([InlineKeyboardButton("📲 Send 'it's a scam'", url=self.bridge.open_url(case_id, "scam"))])
             rows.append([InlineKeyboardButton("✏️ Write my own", callback_data=f"edit:{case_id}"),
                          InlineKeyboardButton("🗑 Done / discard", callback_data=f"drop:{case_id}")])
         else:
@@ -387,8 +393,9 @@ class ScamBot:
             rows = [
                 [InlineKeyboardButton("✅ Send draft", callback_data=f"send:{case_id}"),
                  InlineKeyboardButton("✏️ Edit", callback_data=f"edit:{case_id}")],
-                [InlineKeyboardButton("🚩 Send 'it's a scam'", callback_data=f"scam:{case_id}"),
-                 InlineKeyboardButton("🗑 Discard", callback_data=f"drop:{case_id}")],
+                ([InlineKeyboardButton("🚩 Send 'it's a scam'", callback_data=f"scam:{case_id}")]
+                 if v.verdict != "tech_help" else [])
+                + [InlineKeyboardButton("🗑 Discard", callback_data=f"drop:{case_id}")],
             ]
 
         if channel == "imessage":
@@ -405,7 +412,10 @@ class ScamBot:
         if channel == "imessage":
             head += f"📱 <b>iMessage from {html.escape(name)}</b>\n<blockquote>{html.escape(raw_text[:700])}</blockquote>\n"
             if unseen_attachment:
-                head += "<i>(they also sent an attachment the automation couldn't read)</i>\n"
+                head += ("🖼 <b>Their picture did not come through</b> (iPhone automations can't pass "
+                         "attachments), so this answer is from their words only. For a real answer: "
+                         "long-press the picture in Messages → Share → Telegram → this bot. The result "
+                         "has a 📲 Send button.\n")
         sent = await bot.send_message(
             self.cfg.admin_chat_id, head + self._card_text(case_id, name, v, all_reports, status, channel),
             parse_mode=ParseMode.HTML, reply_markup=InlineKeyboardMarkup(rows) if rows else None,

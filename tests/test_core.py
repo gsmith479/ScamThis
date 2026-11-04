@@ -72,6 +72,8 @@ def test_policy():
     assert route(V("scam", 99), "always", 80) == "review"
     assert route(V("legit", 99), "never", 80) == "auto"
     assert route(V("scam", 99, error="boom"), "never", 80) == "review"
+    for mode in ("uncertain", "always", "never"):  # tech-help advice is always human-checked
+        assert route(V("tech_help", 99), mode, 80) == "review"
 
 
 def test_policy_auto_send_disabled_overrides_everything():

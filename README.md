@@ -40,6 +40,11 @@ GET /result?ticket=…&wait=25   (same shortcut run long-polls; first run to ask
    └─ nothing picked up within 180 s (iOS killed the run, phone offline) → Telegram alert + send button
 ```
 
+**Tech-help questions** ("my email says Cannot Get Mail, how do I fix it?") get verdict `tech_help`:
+a short numbered fix in plain words, prefixed `Tech help: ` (`IMESSAGE_HELP_PREFIX`). These are
+**always held for your review** in every `REVIEW_MODE`, because how-to advice can be confidently
+wrong. The card has no "it's a scam" button, and the hold text says you'll look and text back.
+
 What it can and can't see:
 - **Text and links** in their message are fully supported, and that covers most "is this real?" texts.
 - **Pictures:** the shortcut tries to attach the image. If your iOS version doesn't pass message
