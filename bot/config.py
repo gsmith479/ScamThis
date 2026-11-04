@@ -81,6 +81,7 @@ class Config:
     imessage_contacts: str = ""          # "+15555550123:Pat,+15555550199:Chris Lee"
     imessage_debounce_seconds: int = 10
     imessage_reply_prefix: str = "Scam check: "
+    imessage_help_prefix: str = "Tech help: "
     imessage_hold_message: bool = True
     imessage_claim_timeout: int = 180
 
@@ -121,6 +122,7 @@ class Config:
             imessage_contacts=os.getenv("IMESSAGE_CONTACTS", ""),
             imessage_debounce_seconds=_int("IMESSAGE_DEBOUNCE_SECONDS", 10),
             imessage_reply_prefix=os.getenv("IMESSAGE_REPLY_PREFIX", "Scam check: "),
+            imessage_help_prefix=os.getenv("IMESSAGE_HELP_PREFIX", "Tech help: "),
             imessage_hold_message=_bool("IMESSAGE_HOLD_MESSAGE", True),
             imessage_claim_timeout=_int("IMESSAGE_CLAIM_TIMEOUT", 180),
         )

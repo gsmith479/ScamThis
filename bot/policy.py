@@ -14,7 +14,10 @@ _CHECK_WORDS = re.compile(r"""(?ix)
        toll|package|deliver\w*|usps|fedex|ups|irs|medicare|social\s+security|warrant|jury|
        prize|won\s+(a|an|the|\$)|winner|lottery|sweepstakes|pop-?up|tech\s+support|microsoft|apple|amazon|
        bank|chase|wells|fraud\s+alert|someone\s+called|they\s+called|voicemail|texted\s+me|
-       got\s+(a|this)\s+(text|email|call|message))\b""")
+       got\s+(a|this)\s+(text|email|call|message)|
+       how\s+do\s+i|how\s+to|fix\w*|error|not\s+working|(isn'?t|stopped|quit)\s+working|
+       can'?t\s+(get|log|sign|open|find|send|connect)|cannot|won'?t\s+(open|load|work|let|connect|send|turn|charge)|
+       help\s+me|figure\s+(it\s+)?out|e-?mail|gmail|wi-?fi|printer|iphone|ipad|laptop|computer|settings)\b""")
 
 
 def looks_like_check(text: str, has_media: bool, has_urls: bool) -> bool:
@@ -46,6 +49,8 @@ def route(v: Verdict, review_mode: str, min_conf: int, known_bad_url: bool = Fal
         return "review"
     if v.verdict == "not_a_check":
         return "auto"
+    if v.verdict == "tech_help":
+        return "review"  # how-to advice can be confidently wrong; a human always checks it first
     if not auto_send_enabled:
         return "review"
     if review_mode == "never":

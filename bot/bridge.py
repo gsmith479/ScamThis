@@ -97,6 +97,10 @@ class Bridge:
         tok = request.headers.get("X-Token") or request.query.get("token") or body_token or ""
         return bool(self.cfg.bridge_token) and hmac.compare_digest(tok, self.cfg.bridge_token)
 
+    def prefix(self, verdict: str) -> str:
+        """Reply prefix: tech-help answers shouldn't arrive labelled "Scam check"."""
+        return self.cfg.imessage_help_prefix if verdict == "tech_help" else self.cfg.imessage_reply_prefix
+
     def sign(self, *parts: str) -> str:
         msg = ":".join(parts).encode()
         return hmac.new(self.cfg.bridge_token.encode(), msg, hashlib.sha256).hexdigest()[:20]
@@ -222,7 +226,7 @@ class Bridge:
             phone = to if to.isdigit() else ""
         else:
             phone = case.get("phone", "")
-        text = self.cfg.imessage_reply_prefix + text
+        text = self.prefix(case.get("verdict", "") if variant != "scam" else "scam") + text
         sms = f"sms:{'+1' + phone if len(phone) == 10 else phone}&body={quote(text)}"
         self.sb.store.update_case(case_id, status=f"opened_{variant}")
         page = f"""<!doctype html><meta name=viewport content="width=device-width,initial-scale=1">
@@ -299,15 +303,18 @@ border-radius:12px;text-align:center;text-decoration:none;font-weight:600">Open 
             return {"action": "none"}
 
         if unseen_attachment:
-            clean += ("\n[They also sent a picture/attachment that this automation could not see. If the "
-                      "verdict depends on it, choose 'unsure'.]")
+            clean += ("\n[They also sent a picture/attachment that this automation could not see. If they "
+                      "are asking for help fixing or doing something, use tech_help: give the most likely "
+                      "fix from their words if you can, otherwise ask them to type out what the screen "
+                      "says. Use 'unsure' only if they seem to be asking whether something is a scam.]")
 
         prev = self.sb.store.last_case(f"im:{batch.key}", within=1800)
         context = (f"About {int((time.time() - prev['ts']) / 60)} min ago in this thread you answered "
                    f"(verdict {prev['verdict']}): {prev['reply']}") if prev else None
         note = (f"Channel: iMessage thread on {self.cfg.owner_name}'s personal phone. MOST messages here are ordinary "
                 "personal conversation — use verdict not_a_check unless they are clearly asking whether "
-                "something is legitimate, or sharing a suspicious message/call/link. If they're following "
+                "something is legitimate, sharing a suspicious message/call/link, or asking for help fixing "
+                "a problem with their phone, computer, email or an app (that's tech_help). If they're following "
                 "up on your earlier answer, answer the follow-up briefly.")
 
         case_id, v, decision = await self.sb.run_case(
@@ -322,10 +329,13 @@ border-radius:12px;text-align:center;text-decoration:none;font-weight:600">Open 
             # AUTO_SEND_ENABLED=false: the reply IS generated, it just isn't delivered.
             # "draft" is informational only -- the Shortcut sends on "text", which stays
             # absent, so nothing can go out. The Telegram card carries the send buttons.
-            return {"action": "none", "draft": self.cfg.imessage_reply_prefix + v.reply_text,
+            return {"action": "none", "draft": self.prefix(v.verdict) + v.reply_text,
                     "verdict": v.verdict, "confidence": v.confidence, "case": case_id}
         if decision == "auto":
-            return {"action": "reply", "text": self.cfg.imessage_reply_prefix + v.reply_text}
+            return {"action": "reply", "text": self.prefix(v.verdict) + v.reply_text}
+        if self.cfg.imessage_hold_message and v.verdict == "tech_help":
+            return {"action": "hold", "text": self.prefix(v.verdict) + (
+                f"{self.cfg.owner_name} will look at this and text you back.")}
         if self.cfg.imessage_hold_message:
             return {"action": "hold", "text": self.cfg.imessage_reply_prefix + (
                 f"I want {self.cfg.owner_name} to double-check this one — expect a text soon. "

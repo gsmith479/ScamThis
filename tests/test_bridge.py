@@ -98,6 +98,9 @@ def test_contacts_and_prefilter():
     assert looks_like_check("Is this real??", False, False)
     assert looks_like_check("got a text saying my package is held", False, False)
     assert looks_like_check("", True, False)
+    assert looks_like_check("My email stopped working, how do I fix it?", False, False)
+    assert looks_like_check("Can you point me in the direction to fix this please", False, False)
+    assert looks_like_check("my iphone says storage full", False, False)
 
 
 # ---------------------------------------------------------------- flows
@@ -132,6 +135,34 @@ def test_no_autosend_suppresses_hold_message(tmp_path):
     assert res["action"] == "none" and "text" not in res
     assert res["draft"].startswith("Scam check: ")   # drafted, not delivered
     assert not any("expect a text soon" in s[1] for s in tg.sent)
+
+
+def test_tech_help_holds_with_help_prefix(tmp_path):
+    sb, tg, calls = make(tmp_path, lambda t: V("tech_help", 80, "Your email needs you to sign in again."),
+                         imessage_hold_message=True)
+    res = run(sb, lambda c: shortcut_run(c, "My email says Cannot Get Mail, how do I fix it?"))
+    assert res["action"] == "hold" and res["text"].startswith("Tech help: ")
+    assert "double-check" not in res["text"]
+    card = [s for s in tg.sent if "NEEDS REVIEW" in s[1]][0]
+    assert "TECH HELP" in card[1]
+    labels = [b.text for row in card[2]["reply_markup"].inline_keyboard for b in row]
+    assert not any("scam" in t for t in labels)            # no "it's a scam" button for how-to answers
+    url = [b.url for row in card[2]["reply_markup"].inline_keyboard for b in row if b.url][0]
+
+    async def open_it(c):
+        path = urlsplit(url)
+        return await (await c.get(path.path + "?" + path.query)).text()
+    page = run(sb, open_it)
+    assert "Tech help: Your email needs you to sign in again." in page
+
+
+def test_unseen_picture_help_request(tmp_path):
+    """Picture didn't come through: Claude is steered to tech_help, the card says how to forward it."""
+    sb, tg, calls = make(tmp_path, lambda t: V("tech_help", 40, "What does the message on your screen say?"))
+    res = run(sb, lambda c: shortcut_run(c, "\ufffc Can you point me in the direction to fix this please"))
+    assert "use tech_help" in calls[0]["text"]
+    card = [s for s in tg.sent if "iMessage from Pat" in s[1]][0]
+    assert "picture did not come through" in card[1] and "Share → Telegram" in card[1]
 
 
 def test_chitchat_never_reaches_claude(tmp_path):
